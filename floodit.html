@@ -1,0 +1,178 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Flood IT</title>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.0.0/prototype.js"></script>
+
+		<script type="text/javascript">
+		//<![CDATA[
+		var colors = ['yellow', 'green', 'red', 'blue', 'orange', 'lime'];
+		var blockSize = 20;
+		var fieldSize = 10;
+		var maxMoves = 15;
+
+		// don't change below this line!
+		var svgNS = "http://www.w3.org/2000/svg";
+		var xlinkNS = "http://www.w3.org/1999/xlink";
+
+		function getRandom(min, max) {
+			if(min > max) {
+				return(-1);
+			}
+			if(min == max) {
+				return(min);
+			}
+			return(min + parseInt(Math.random() * (max - min + 1)));
+		}
+
+		new Event.observe(window, 'load', function() { initialize();} );
+
+		var numColors = colors.length;
+		var moves = 0;
+		var fields = new Array();
+		var finishedFields = new Array();
+		var lastCol = null;
+
+		function initialize() {
+			r = blockSize * fieldSize / numColors / 2.5;
+			Element.writeAttribute($('playfield'), { width: blockSize * (fieldSize + 1), height: blockSize * (fieldSize + 1) + r * 4 });
+			Element.writeAttribute($('movecounter'), { x: blockSize * (fieldSize - 1) / 2, y: blockSize * (fieldSize + 1) + r * 3.5 });
+			for(var c = 0; c < numColors; c++) {
+				var el = document.createElementNS(svgNS, 'circle');
+				Element.writeAttribute(el, {
+					cx: blockSize * (fieldSize + 1) / numColors + c * r * 2.2,
+					cy: blockSize * (fieldSize + 1) + r,
+					r: r,
+					stroke: 'black',
+					'stroke-width': 0.5,
+					fill: colors[c],
+				});
+				Element.observe(el, 'click', checkMove);
+				$('playfield').appendChild(el);
+			}
+
+			for(var r = 0; r < fieldSize; r++) {
+				var col = new Array();
+				for(var c = 0; c < fieldSize; c++) {
+					var el = document.createElementNS(svgNS, 'rect');
+					Element.writeAttribute(el, {
+						x: blockSize / 2  + blockSize * r,
+						y: blockSize / 2  + blockSize * c,
+						width: blockSize,
+						height: blockSize,
+						stroke: 'black',
+						'stroke-width': 0.25,
+						fill: colors[getRandom(0, numColors - 1)],
+						row: r,
+						col: c
+					});
+					col[c] = el;
+					$('playfield').appendChild(el);
+				}
+				fields[r] = col;
+			}
+			lastCol = Element.readAttribute(fields[0][0], 'fill');
+			finishedFields.push(fields[0][0]);
+		}
+
+		function reset() {
+			moves = 0;
+			finishedFields = new Array();
+			$('movecounter').firstChild.data = 'Go!';
+			for(var r = 0; r < fieldSize; r++) {
+				var col = new Array();
+				for(var c = 0; c < fieldSize; c++) {
+					Element.writeAttribute(fields[r][c], {
+						fill: colors[getRandom(0, numColors - 1)],
+					});
+				}
+			}
+			lastCol = Element.readAttribute(fields[0][0], 'fill');
+			finishedFields.push(fields[0][0]);
+			
+		}
+
+		function checkMove(el) {
+			$('movecounter').firstChild.data = (++moves  + ' / ' + maxMoves);
+			var buttonCol = Element.readAttribute(this, 'fill');
+			var attrs = {
+				fill: buttonCol,
+				'stroke-width': 0.25
+			};
+//			alert(lastCol + ' ' + buttonCol);
+			do {
+				var found = 0;
+				for(var f = 0, len = finishedFields.length; f < len; f++) {
+					Element.writeAttribute(finishedFields[f], attrs);
+					var row = parseInt(Element.readAttribute(finishedFields[f], 'row'));
+					var col = parseInt(Element.readAttribute(finishedFields[f], 'col'));
+//					alert(row + '/' + col);
+
+					if(row > 0 && !finishedFields.include(fields[row - 1][col]) && Element.readAttribute(fields[row - 1][col], 'fill') == lastCol) {
+						Element.writeAttribute(fields[row - 1][col], attrs);
+						finishedFields.push(fields[row - 1][col]);
+						found++;
+					}
+
+					if(row < fieldSize - 1 && !finishedFields.include(fields[row + 1][col]) && Element.readAttribute(fields[row + 1][col], 'fill') == lastCol) {
+						Element.writeAttribute(fields[row + 1][col], attrs);
+						finishedFields.push(fields[row + 1][col]);
+						found++;
+					}
+
+					if(col > 0 && !finishedFields.include(fields[row][col - 1]) && Element.readAttribute(fields[row][col - 1], 'fill') == lastCol) {
+						Element.writeAttribute(fields[row][col - 1], attrs);
+						finishedFields.push(fields[row][col - 1]);
+						found++;
+					}
+
+					if(col < fieldSize - 1 && !finishedFields.include(fields[row][col + 1]) && Element.readAttribute(fields[row][col + 1], 'fill') == lastCol) {
+						Element.writeAttribute(fields[row][col + 1], attrs);
+						finishedFields.push(fields[row][col + 1]);
+						found++;
+					}
+				}
+			} while(found > 0);
+
+			lastCol = buttonCol;
+			var won = true;
+			for(var r = 0; r < fieldSize; r++) {
+				for(var c = 0; c < fieldSize; c++) {
+					var col = Element.readAttribute(fields[r][c], 'fill');
+					if(col != lastCol) {
+						won = false;
+						break;
+					}
+				}
+			}
+
+			if(won) {
+				alert('You won!');
+				reset();
+			}
+
+			if(moves >= maxMoves) {
+				alert('You Lost!');
+				reset();
+			}
+		}
+		//]]>
+		</script>
+
+		<style type="text/css" media="screen">
+		/*<![CDATA[*/
+			body {
+				background-color: silver;
+			}
+		/*]]>*/
+		</style>
+	</head>
+	<body>
+		<div>
+			<div id="movecounter">&nbsp;</div>
+			<svg id="playfield" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+			</svg>
+		</div>
+	</body>
+</html>
